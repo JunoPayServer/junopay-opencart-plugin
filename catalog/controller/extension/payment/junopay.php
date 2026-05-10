@@ -74,6 +74,7 @@ class ControllerExtensionPaymentJunopay extends Controller {
         $data['amount'] = isset($invoice['amount_zat']) ? ((int)$invoice['amount_zat'] / 100000000) . ' JUNO' : '';
         $data['address'] = isset($invoice['address']) ? $invoice['address'] : '';
         $data['invoice_id'] = isset($invoice['invoice_id']) ? $invoice['invoice_id'] : '';
+        $data['status_url'] = $this->url->link('extension/payment/junopay/status', '', true);
         $data['continue'] = $this->url->link('common/home', '', true);
         $data['header'] = $this->load->controller('common/header');
         $data['footer'] = $this->load->controller('common/footer');
@@ -83,6 +84,44 @@ class ControllerExtensionPaymentJunopay extends Controller {
         $data['content_bottom'] = $this->load->controller('common/content_bottom');
 
         $this->response->setOutput($this->load->view('extension/payment/junopay_invoice', $data));
+    }
+
+    public function status() {
+        $this->load->language('extension/payment/junopay');
+
+        $invoice = isset($this->session->data['junopay_invoice']) ? $this->session->data['junopay_invoice'] : array();
+        if (empty($invoice['invoice_id']) || empty($invoice['invoice_token'])) {
+            $this->json(array('ok' => false, 'error' => 'missing_invoice'));
+            return;
+        }
+
+        $result = $this->getPublicInvoice($invoice['invoice_id'], $invoice['invoice_token']);
+        if (!empty($result['error'])) {
+            $this->json(array('ok' => false, 'error' => $result['error']));
+            return;
+        }
+
+        $publicInvoice = isset($result['invoice']) && is_array($result['invoice']) ? $result['invoice'] : $result;
+        $this->session->data['junopay_invoice'] = array_merge($invoice, $publicInvoice);
+        $phase = $this->invoicePhase($publicInvoice);
+
+        if (!empty($this->session->data['order_id']) && (!isset($invoice['phase']) || $invoice['phase'] !== $phase)) {
+            $this->load->model('checkout/order');
+            $this->model_checkout_order->addOrderHistory(
+                (int)$this->session->data['order_id'],
+                (int)$this->config->get('payment_junopay_order_status_id'),
+                'JunoPay invoice state: ' . $phase,
+                false
+            );
+            $this->session->data['junopay_invoice']['phase'] = $phase;
+        }
+
+        $this->json(array(
+            'ok' => true,
+            'phase' => $phase,
+            'order_status' => $phase,
+            'invoice' => $publicInvoice
+        ));
     }
 
     private function createInvoice(array $order, int $amountZat): array {
@@ -124,15 +163,80 @@ class ControllerExtensionPaymentJunopay extends Controller {
         $decoded = json_decode($body, true);
         $data = is_array($decoded) && isset($decoded['data']) ? $decoded['data'] : array();
         $invoice = isset($data['invoice']) && is_array($data['invoice']) ? $data['invoice'] : array();
+        $invoiceToken = isset($data['invoice_token']) ? (string)$data['invoice_token'] : '';
         $address = isset($invoice['address']) ? $invoice['address'] : (isset($invoice['payment_address']) ? $invoice['payment_address'] : '');
-        if (empty($invoice['invoice_id']) || $address === '') {
+        if (empty($invoice['invoice_id']) || $address === '' || $invoiceToken === '') {
             return array('error' => 'JunoPay returned an incomplete invoice.');
         }
 
         return array(
             'invoice_id' => $invoice['invoice_id'],
+            'invoice_token' => $invoiceToken,
             'address' => $address,
-            'amount_zat' => isset($invoice['amount_zat']) ? (int)$invoice['amount_zat'] : $amountZat
+            'amount_zat' => isset($invoice['amount_zat']) ? (int)$invoice['amount_zat'] : $amountZat,
+            'received_zat_pending' => isset($invoice['received_zat_pending']) ? (int)$invoice['received_zat_pending'] : 0,
+            'received_zat_confirmed' => isset($invoice['received_zat_confirmed']) ? (int)$invoice['received_zat_confirmed'] : 0,
+            'expires_at' => isset($invoice['expires_at']) ? (string)$invoice['expires_at'] : ''
         );
+    }
+
+    private function getPublicInvoice(string $invoiceId, string $invoiceToken): array {
+        $baseUrl = rtrim((string)$this->config->get('payment_junopay_api_base_url'), '/');
+        if ($baseUrl === '') {
+            return array('error' => 'JunoPay is not configured.');
+        }
+
+        $url = $baseUrl . '/v1/public/invoices/' . rawurlencode($invoiceId) . '?token=' . rawurlencode($invoiceToken);
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+        $body = curl_exec($ch);
+        $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        $err = curl_error($ch);
+        curl_close($ch);
+
+        if ($body === false || $status < 200 || $status > 299) {
+            return array('error' => $err ?: 'JunoPay status refresh failed.');
+        }
+
+        $decoded = json_decode($body, true);
+        if (!is_array($decoded) || ($decoded['status'] ?? '') !== 'ok' || !isset($decoded['data'])) {
+            return array('error' => 'JunoPay returned an invalid status response.');
+        }
+
+        return $decoded['data'];
+    }
+
+    private function invoicePhase(array $invoice): string {
+        $amount = isset($invoice['amount_zat']) ? (int)$invoice['amount_zat'] : 0;
+        $pending = isset($invoice['received_zat_pending']) ? (int)$invoice['received_zat_pending'] : 0;
+        $confirmed = isset($invoice['received_zat_confirmed']) ? (int)$invoice['received_zat_confirmed'] : 0;
+        $expiresAt = isset($invoice['expires_at']) ? (string)$invoice['expires_at'] : '';
+
+        if ($expiresAt !== '') {
+            $expiry = strtotime($expiresAt);
+            if ($expiry !== false && $expiry <= time() && ($pending + $confirmed) < $amount) {
+                return 'expired';
+            }
+        }
+
+        if ($amount > 0 && $confirmed >= $amount) {
+            return 'confirmed';
+        }
+
+        if ($amount > 0 && ($pending + $confirmed) >= $amount) {
+            return 'paid';
+        }
+
+        if (($pending + $confirmed) > 0) {
+            return 'underpaid';
+        }
+
+        return 'awaiting_payment';
+    }
+
+    private function json(array $payload): void {
+        $this->response->addHeader('Content-Type: application/json');
+        $this->response->setOutput(json_encode($payload));
     }
 }

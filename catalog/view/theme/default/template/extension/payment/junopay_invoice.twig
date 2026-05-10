@@ -137,7 +137,7 @@
         .junopay-invoice__value-row { align-items: stretch; flex-direction: column; }
       }
       </style>
-      <section class="junopay-invoice junopay-checkout" data-address="{{ address }}">
+      <section class="junopay-invoice junopay-checkout" data-address="{{ address }}" data-status-url="{{ status_url }}">
         <div class="junopay-invoice__header">
           <div class="junopay-invoice__brand">
             <svg class="junopay-invoice__mark" viewBox="0 0 64 64" fill="none" aria-hidden="true" focusable="false">
@@ -147,7 +147,7 @@
             </svg>
             <h1>{{ heading_title }}</h1>
           </div>
-          <span class="junopay-invoice__status">{{ text_waiting }}</span>
+          <span class="junopay-invoice__status junopay-status">{{ text_waiting }}</span>
         </div>
         <div class="junopay-invoice__body">
           <p class="junopay-invoice__lead">{{ text_exact }}</p>
