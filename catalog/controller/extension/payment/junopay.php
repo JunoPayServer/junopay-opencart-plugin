@@ -4,6 +4,10 @@ class ControllerExtensionPaymentJunopay extends Controller {
         $this->load->language('extension/payment/junopay');
 
         $data['button_confirm'] = $this->language->get('button_confirm');
+        $data['text_title'] = $this->language->get('text_title');
+        $data['text_checkout_intro'] = $this->language->get('text_checkout_intro');
+        $data['text_checkout_detail'] = $this->language->get('text_checkout_detail');
+        $data['text_loading'] = $this->language->get('text_loading');
         $data['action'] = $this->url->link('extension/payment/junopay/confirm', '', true);
 
         return $this->load->view('extension/payment/junopay', $data);
@@ -62,6 +66,11 @@ class ControllerExtensionPaymentJunopay extends Controller {
         $data['text_amount'] = $this->language->get('text_amount');
         $data['text_address'] = $this->language->get('text_address');
         $data['text_invoice'] = $this->language->get('text_invoice');
+        $data['text_copy'] = $this->language->get('text_copy');
+        $data['text_copied'] = $this->language->get('text_copied');
+        $data['text_waiting'] = $this->language->get('text_waiting');
+        $data['text_exact'] = $this->language->get('text_exact');
+        $data['text_wallet_hint'] = $this->language->get('text_wallet_hint');
         $data['amount'] = isset($invoice['amount_zat']) ? ((int)$invoice['amount_zat'] / 100000000) . ' JUNO' : '';
         $data['address'] = isset($invoice['address']) ? $invoice['address'] : '';
         $data['invoice_id'] = isset($invoice['invoice_id']) ? $invoice['invoice_id'] : '';

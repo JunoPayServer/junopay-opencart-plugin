@@ -1,5 +1,60 @@
-<div class="buttons">
-  <div class="pull-right">
+<style>
+.junopay-option {
+  border: 1px solid #ded7cd;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fffaf3 0%, #ffffff 68%);
+  padding: 18px;
+  box-shadow: 0 12px 30px rgba(35, 25, 16, 0.08);
+}
+.junopay-option__top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.junopay-option__mark {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f59a3d;
+  color: #fff;
+  font-weight: 800;
+  font-size: 22px;
+}
+.junopay-option__title {
+  margin: 0;
+  color: #1f1c18;
+  font-size: 18px;
+  font-weight: 700;
+}
+.junopay-option__copy {
+  margin: 4px 0 0;
+  color: #746b62;
+}
+.junopay-option__actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+.junopay-option .btn-primary {
+  border-color: #d8843f;
+  background: #d8843f;
+  border-radius: 8px;
+  font-weight: 700;
+  padding: 11px 18px;
+}
+</style>
+<div class="junopay-option">
+  <div class="junopay-option__top">
+    <div class="junopay-option__mark">J</div>
+    <div>
+      <p class="junopay-option__title">{{ text_checkout_intro }}</p>
+      <p class="junopay-option__copy">{{ text_checkout_detail }}</p>
+    </div>
+  </div>
+  <div class="junopay-option__actions">
     <button type="button" id="button-confirm" data-loading-text="{{ text_loading }}" class="btn btn-primary">{{ button_confirm }}</button>
   </div>
 </div>
