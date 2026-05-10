@@ -131,12 +131,15 @@ class ControllerExtensionPaymentJunopay extends Controller {
             return array('error' => 'JunoPay is not configured.');
         }
 
+        $orderCreatedAt = isset($order['date_added']) ? strtotime((string)$order['date_added']) : time();
+        $externalOrderId = 'opencart-order-' . $order['order_id'] . '-' . ($orderCreatedAt ?: time());
         $payload = json_encode(array(
-            'external_order_id' => 'opencart-order-' . $order['order_id'],
+            'external_order_id' => $externalOrderId,
             'amount_zat' => $amountZat,
             'metadata' => array(
                 'platform' => 'opencart',
                 'order_id' => (string)$order['order_id'],
+                'external_order_id' => $externalOrderId,
                 'currency' => $order['currency_code'],
                 'total' => (string)$order['total']
             )
