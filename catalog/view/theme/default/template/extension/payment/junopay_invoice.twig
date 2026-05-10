@@ -1,0 +1,23 @@
+{{ header }}
+<div id="common-success" class="container">
+  <div class="row">{{ column_left }}
+    {% if column_left and column_right %}
+    {% set class = 'col-sm-6' %}
+    {% elseif column_left or column_right %}
+    {% set class = 'col-sm-9' %}
+    {% else %}
+    {% set class = 'col-sm-12' %}
+    {% endif %}
+    <div id="content" class="{{ class }}">{{ content_top }}
+      <h1>{{ heading_title }}</h1>
+      <p>Send the exact amount to the address below.</p>
+      <p><strong>{{ text_amount }}:</strong> <code>{{ amount }}</code></p>
+      <p><strong>{{ text_address }}:</strong> <code>{{ address }}</code></p>
+      <p><strong>{{ text_invoice }}:</strong> <code>{{ invoice_id }}</code></p>
+      <div class="buttons">
+        <div class="pull-right"><a href="{{ continue }}" class="btn btn-primary">Continue</a></div>
+      </div>
+      {{ content_bottom }}</div>
+    {{ column_right }}</div>
+</div>
+{{ footer }}

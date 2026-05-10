@@ -1,0 +1,51 @@
+{{ header }}{{ column_left }}
+<div id="content">
+  <div class="page-header">
+    <div class="container-fluid">
+      <h1>{{ heading_title }}</h1>
+    </div>
+  </div>
+  <div class="container-fluid">
+    <form action="{{ action }}" method="post" enctype="multipart/form-data" id="form-payment" class="form-horizontal">
+      <div class="form-group">
+        <label class="col-sm-2 control-label" for="input-status">{{ entry_status }}</label>
+        <div class="col-sm-10">
+          <select name="payment_junopay_status" id="input-status" class="form-control">
+            <option value="1" {% if payment_junopay_status %}selected{% endif %}>Enabled</option>
+            <option value="0" {% if not payment_junopay_status %}selected{% endif %}>Disabled</option>
+          </select>
+        </div>
+      </div>
+      {% for field,label in {
+        'title': entry_title,
+        'api_base_url': entry_api_base_url,
+        'merchant_api_key': entry_merchant_api_key,
+        'webhook_secret': entry_webhook_secret,
+        'zatoshis_per_currency_unit': entry_zatoshis_per_currency_unit,
+        'sort_order': entry_sort_order
+      } %}
+      <div class="form-group">
+        <label class="col-sm-2 control-label" for="input-{{ field }}">{{ label }}</label>
+        <div class="col-sm-10">
+          <input type="text" name="payment_junopay_{{ field }}" value="{{ attribute(_context, 'payment_junopay_' ~ field) }}" id="input-{{ field }}" class="form-control" />
+        </div>
+      </div>
+      {% endfor %}
+      <div class="form-group">
+        <label class="col-sm-2 control-label">{{ entry_order_status }}</label>
+        <div class="col-sm-10">
+          <select name="payment_junopay_order_status_id" class="form-control">
+            {% for order_status in order_statuses %}
+            <option value="{{ order_status.order_status_id }}" {% if order_status.order_status_id == payment_junopay_order_status_id %}selected{% endif %}>{{ order_status.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="pull-right">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a href="{{ cancel }}" class="btn btn-default">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{{ footer }}
